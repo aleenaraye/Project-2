@@ -1,0 +1,62 @@
+"""Reproducible performance experiment; run: python benchmark.py."""
+import csv
+import math
+import statistics
+import time
+from pathlib import Path
+from shortest_paths import dijkstra, duan_et_al, random_graph
+
+
+def benchmark():
+    rows = []
+    for n in (50, 100, 200, 400, 800, 1600):
+        m = 3*n
+        ds, bs = [], []
+        for i in range(5):
+            g = random_graph(n, m, seed=2026 + i)
+            s = time.perf_counter()
+            a = dijkstra(g)
+            ds.append((time.perf_counter() - s) * 1000)
+            s = time.perf_counter()
+            b = duan_et_al(g)
+            bs.append((time.perf_counter() - s) * 1000)
+            if not all(math.isclose(a[v], b[v], rel_tol=1e-10, abs_tol=1e-9) for v in g):
+                raise AssertionError('Algorithms disagree')
+        rows.append(dict(vertices=n, edges=m,
+                         dijkstra_ms=round(statistics.median(ds), 5),
+                         bmssp_ms=round(statistics.median(bs), 5),
+                         ratio=round(statistics.median(bs)/statistics.median(ds), 2)))
+    with Path('benchmark_results.csv').open('w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+    try:
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        Path('figures').mkdir(exist_ok=True)
+        fig, ax = plt.subplots(figsize=(7.4, 3.3))
+        ax.plot([r['vertices'] for r in rows], [r['dijkstra_ms'] for r in rows], 'o-', label='Dijkstra (heap)')
+        ax.plot([r['vertices'] for r in rows], [r['bmssp_ms'] for r in rows], 's-', label='BMSSP adaptation (sorted frontier)')
+        ax.set(xlabel='Number of vertices, n', ylabel='Median execution time (ms)', title='Single-source shortest paths: measured runtime')
+        ax.grid(alpha=.25)
+        ax.legend()
+        fig.tight_layout()
+        fig.savefig('figures/runtime.png', dpi=180)
+        plt.close(fig)
+        fig, ax = plt.subplots(figsize=(7.4, 3.3))
+        ax.plot([r['vertices'] for r in rows], [r['ratio'] for r in rows], 'o-')
+        ax.axhline(1, color='gray', linestyle='--', linewidth=1)
+        ax.set(xlabel='Number of vertices, n', ylabel='BMSSP / Dijkstra time ratio', title='Observed relative runtime')
+        ax.grid(alpha=.25)
+        fig.tight_layout()
+        fig.savefig('figures/ratio.png', dpi=180)
+        plt.close(fig)
+    except ImportError:
+        print('Install matplotlib to generate figures: pip install matplotlib')
+    for row in rows:
+        print(row)
+    return rows
+
+if __name__ == '__main__':
+    benchmark()
