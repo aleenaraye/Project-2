@@ -30,9 +30,6 @@ No package is needed for graph algorithms, only matplotlib for figures.
 
 The test suite checks equality against Dijkstra on seeded random graphs and a small solved example. Equality is empirical evidence, not a mathematical proof of the adapted algorithm, and does not establish the claimed faster runtime of the paper. For graph generation, `connected=True` makes all vertices reachable from node 0 through the seed tree; the rest of the edges are random. Timing uses five independent seeds at each size and median elapsed milliseconds on the machine that generated the files; rerunning on another computer gives different times.
 
-## AI use
-
-AI assistance was used to draft, implement, debug, benchmark, visualize and write this project. Confirm with the instructor that this level of assistance is acceptable and accurately include the contributions of each actual group member; do not claim teammates performed work they did not do.
 
 ## Sources
 
